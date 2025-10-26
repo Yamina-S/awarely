@@ -31,21 +31,6 @@ Tech Stack
   - Icons: Lucide Icons
   - State: React Context API
 
-## Project Structure
-src/
- ├─ app/
- │   ├─ auth/
- │   │   ├─ AuthWrapper.jsx        # Handles routing logic based on auth state
- │   │   └─ LoginForm.jsx          # Login & registration UI
- │   ├─ components/
- │   │   └─ AuthContext.jsx        # Global auth provider & hooks
- │   ├─ layout.js                  # Root layout with AuthProvider
- │   └─ page.js                    # Entry point
- ├─ lib/
- │   └─ supabaseClient.js          # Supabase client initialization
- └─ styles/
-     └─ globals.css
-
 ## Installation & Setup
 # 1. Clone repository
 git clone https://github.com/yourusername/awarely.git
