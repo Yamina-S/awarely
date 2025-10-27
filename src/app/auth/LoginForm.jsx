@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useAuth } from "../components/AuthContext";
+import { useAuth } from "./AuthContext";
 import { Eye, EyeOff, AlertCircle } from "lucide-react";
 
 export default function LoginForm() {

@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+@theme {
+    --color-primary-50: #f5f9ff;
+    --color-primary-100: #e0edff;
+    --color-primary-200: #c7ddfe;
+    --color-primary-300: #9fc2fd;
+    --color-primary-400: #6fa2fa;
+    --color-primary-500: #3b82f6;
+    --color-primary-600: #2563eb;
+    --color-primary-700: #1d4ed8;
+    --color-primary-800: #1e40af;
+    --color-primary-900: #1e3a8a;
+
+    --color-accent-500: #14b8a6;
+    --color-neutral-500: #64748b;
+
+    --font-sans: Inter, system-ui, sans-serif;
+}
+
+@utility btn {
+    @apply inline-flex items-center justify-center rounded-lg font-medium transition-colors px-4 py-2;
+}
+
+@utility btn-primary {
+    @apply bg-primary-500 text-white;
+}
+
+@utility btn-accent {
+    @apply bg-accent-500 text-white;
+}
+
+@utility btn-neutral {
+    @apply bg-neutral-200 text-neutral-800;
+}

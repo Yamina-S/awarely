@@ -1,4 +1,4 @@
-import { useAuth } from '@/app/components/AuthContext';
+import { useAuth } from '@/app/auth/AuthContext';
 import LoginForm from './LoginForm';
 import Dashboard from '../dashboard/Dashboard';
 
