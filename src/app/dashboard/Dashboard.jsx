@@ -30,7 +30,7 @@ export default function DashboardPage() {
             title: "Impuls der Woche",
             description: "Wöchentliche Impulse",
             icon: Lightbulb,
-            path: "/weekly-tips",
+            path: "/weekly-impulses",
             color: "bg-yellow-200 hover:bg-yellow-400 text-yellow-900",
         },
         {
