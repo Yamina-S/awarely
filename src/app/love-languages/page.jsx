@@ -2,128 +2,64 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../auth/AuthContext';
-import { supabase } from '@/lib/supabaseClient';
-import { ArrowLeft, ExternalLink, Edit, Trash2} from 'lucide-react';
+import { ArrowLeft, ExternalLink, Edit, Trash2 } from 'lucide-react';
+import { useLoveLanguageProfile } from '../hooks/useLoveLanguageProfile';
+import { LOVE_LANGUAGES_DE} from '../components/enums';
 
-const LOVE_LANGUAGES = {
-    words_of_affirmation: 'Worte der Anerkennung',
-    acts_of_service: 'Hilfsbereitschaft',
-    receiving_gifts: 'Geschenke',
-    quality_time: 'Qualitätszeit',
-    physical_touch: 'Körperliche Nähe'
-};
-
-export default function LoveLanguages({currentPath = "/love-languages"}) {
+export default function LoveLanguagesPage({ currentPath = "/love-languages" }) {
     const router = useRouter();
-    const { user } = useAuth();
-    const [profile, setProfile] = useState(null);
+
+    const {
+        profile,
+        scores,
+        setScores,
+        loading,
+        saveLoveLanguages,
+        resetLoveLanguages
+    } = useLoveLanguageProfile();
+
     const [isEditing, setIsEditing] = useState(false);
-    const [loading, setLoading] = useState(true);
-    const [scores, setScores] = useState({
-        words_of_affirmation: 3,
-        acts_of_service: 3,
-        receiving_gifts: 3,
-        quality_time: 3,
-        physical_touch: 3
-    });
+    const [hasRatedLanguages, setHasRatedLanguages] = useState(false);
 
     useEffect(() => {
-        loadProfile();
-    }, [user]);
+        if (!loading) {
+            const rated = profile?.primary_love_language != null
+                && typeof profile.primary_love_language === 'string'
+                && profile.primary_love_language.trim().length > 0;
+            setHasRatedLanguages(rated);
 
-    const loadProfile = async () => {
-        if (!user) return;
-
-        const { data, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
-            .single();
-
-        if (data) {
-            setProfile(data);
-            setScores({
-                words_of_affirmation: data.words_of_affirmation || 3,
-                acts_of_service: data.acts_of_service || 3,
-                receiving_gifts: data.receiving_gifts || 3,
-                quality_time: data.quality_time || 3,
-                physical_touch: data.physical_touch || 3
-            });
-
-            const hasCustomValues = Object.values(data).some((v, i) =>
-                ['words_of_affirmation', 'acts_of_service', 'receiving_gifts', 'quality_time', 'physical_touch']
-                    .includes(Object.keys(data)[i]) && v !== 3
-            );
-
-            if (!hasCustomValues) {
+            if (!rated) {
                 setIsEditing(true);
-            }
+            } else {setIsEditing(false)}
         }
-        setLoading(false);
-    };
+    }, [loading, profile]);
 
     const handleSave = async () => {
-        if (!user) return;
-
-        const sortedLanguages = Object.entries(scores)
-            .sort(([, a], [, b]) => b - a);
-
-        const primary = sortedLanguages[0][0].toUpperCase();
-        const secondary = sortedLanguages[1][0].toUpperCase();
-
-        const { error } = await supabase
-            .from('profiles')
-            .update({
-                ...scores,
-                primary_love_language: primary,
-                secondary_love_language: secondary
-            })
-            .eq('id', user.id);
-
-        if (!error) {
-            await loadProfile();
+        const ok = await saveLoveLanguages();
+        if (ok) {
+            setHasRatedLanguages(true);
             setIsEditing(false);
         }
     };
 
     const handleDelete = async () => {
-        if (!user || !confirm('Möchtest du deine Liebessprachen wirklich löschen?')) return;
-
-        await supabase
-            .from('profiles')
-            .update({
-                words_of_affirmation: 3,
-                acts_of_service: 3,
-                receiving_gifts: 3,
-                quality_time: 3,
-                physical_touch: 3,
-                primary_love_language: null,
-                secondary_love_language: null
-            })
-            .eq('id', user.id);
-
-        await loadProfile();
-        setIsEditing(true);
-    };
-
-    const toggleShare = async () => {
-        if (!user || !profile) return;
-
-        await supabase
-            .from('profiles')
-            .update({ share_love_language: !profile.share_love_language })
-            .eq('id', user.id);
-
-        await loadProfile();
+        const confirmed = confirm('Möchtest du deine Liebessprachen wirklich löschen?');
+        if (!confirmed) return;
+        const ok = await resetLoveLanguages();
+        if (ok) {
+            setHasRatedLanguages(false);
+            setIsEditing(true);
+        }
     };
 
     if (loading) {
         return <div className="flex items-center justify-center min-h-screen">Lädt...</div>;
     }
 
-    const getPrimaryLanguage = () => {
-        return Object.entries(scores).reduce((a, b) => scores[a[0]] > scores[b[0]] ? a : b);
+    const getPrimaryLanguageKey = () => {
+        return Object.entries(scores).reduce((bestScore, current) =>
+            current[1] > bestScore[1] ? current : bestScore
+        )[0];
     };
 
     return (
@@ -144,7 +80,7 @@ export default function LoveLanguages({currentPath = "/love-languages"}) {
                             <p className="text-gray-600">Bewerte jede Liebessprache von 1-5</p>
                         </div>
 
-                        {!isEditing && profile && (
+                        {!isEditing && hasRatedLanguages && profile && (
                             <div className="flex gap-2">
                                 <button
                                     onClick={() => setIsEditing(true)}
@@ -164,22 +100,23 @@ export default function LoveLanguages({currentPath = "/love-languages"}) {
 
                     {isEditing ? (
                         <div className="space-y-6">
-                            {Object.entries(LOVE_LANGUAGES).map(([key, label]) => (
+                            {Object.entries(LOVE_LANGUAGES_DE).map(([key, label]) => (
                                 <div key={key}>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        {label}
-                                    </label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
                                     <div className="flex items-center gap-4">
                                         <input
                                             type="range"
                                             min="1"
                                             max="5"
-                                            value={scores[key]}
-                                            onChange={(e) => setScores({ ...scores, [key]: parseInt(e.target.value) })}
+                                            value={scores[key] ?? 3}
+                                            onChange={(e) => setScores({
+                                                ...scores,
+                                                [key]: parseInt(e.target.value, 10)
+                                            })}
                                             className="flex-1"
                                         />
                                         <span className="text-2xl font-bold text-gray-800 w-8 text-center">
-                      {scores[key]}
+                      {scores[key] ?? 3}
                     </span>
                                     </div>
                                 </div>
@@ -192,14 +129,12 @@ export default function LoveLanguages({currentPath = "/love-languages"}) {
                                 >
                                     Speichern
                                 </button>
-                                {profile && !isEditing && (
-                                    <button
-                                        onClick={() => setIsEditing(false)}
-                                        className="px-6 bg-gray-200 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-300"
-                                    >
-                                        Abbrechen
-                                    </button>
-                                )}
+                                <button
+                                    onClick={() => setIsEditing(false)}
+                                    className="px-6 bg-gray-200 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-300"
+                                >
+                                    Abbrechen
+                                </button>
                             </div>
 
                             <a
@@ -213,36 +148,45 @@ export default function LoveLanguages({currentPath = "/love-languages"}) {
                             </a>
                         </div>
                     ) : (
-                        <div>
-                            <div className="bg-gradient-to-r from-pink-50 to-purple-50 p-6 rounded-lg mb-6">
-                                <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                                    Deine primäre Liebessprache
-                                </h3>
-                                <p className="text-2xl font-bold text-pink-600">
-                                    {LOVE_LANGUAGES[getPrimaryLanguage()[0]]}
-                                </p>
-                            </div>
+                        hasRatedLanguages ? (
+                            <div>
+                                <div className="bg-gradient-to-r from-pink-50 to-purple-50 p-6 rounded-lg mb-6">
+                                    <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                                        Deine primäre Liebessprache
+                                    </h3>
+                                    <p className="text-2xl font-bold text-pink-600">
+                                        { LOVE_LANGUAGES_DE[profile.primary_love_language] }
+                                    </p>
+                                    {profile.secondary_love_language && (
+                                        <p className="text-sm text-gray-500 mt-1">
+                                            Sekundär: { LOVE_LANGUAGES_DE[profile.secondary_love_language] }
+                                        </p>
+                                    )}
+                                </div>
 
-                            <div className="space-y-4">
-                                {Object.entries(LOVE_LANGUAGES).map(([key, label]) => (
-                                    <div key={key} className="flex items-center justify-between">
-                                        <span className="text-gray-700">{label}</span>
-                                        <div className="flex gap-1">
-                                            {[1, 2, 3, 4, 5].map((i) => (
-                                                <div
-                                                    key={i}
-                                                    className={`w-8 h-8 rounded ${
-                                                        i <= scores[key]
-                                                            ? 'bg-pink-500'
-                                                            : 'bg-gray-200'
-                                                    }`}
-                                                />
-                                            ))}
+                                <div className="space-y-4">
+                                    {Object.entries(LOVE_LANGUAGES_DE).map(([key, label]) => (
+                                        <div key={key} className="flex items-center justify-between">
+                                            <span className="text-gray-700">{label}</span>
+                                            <div className="flex gap-1">
+                                                {[1,2,3,4,5].map(currentLoveLanguage => (
+                                                    <div
+                                                        key={currentLoveLanguage}
+                                                        className={`w-8 h-8 rounded ${
+                                                            currentLoveLanguage <= (scores[key] ?? 3) ? 'bg-blue-300' : 'bg-gray-200'
+                                                        }`}
+                                                    />
+                                                ))}
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    ))}
+                                </div>
                             </div>
-                        </div>
+                        ) : (
+                            <div className="text-center text-gray-600">
+                                Du hast noch keine Liebessprachen bewertet. Bitte mache zuerst deine Bewertung.
+                            </div>
+                        )
                     )}
                 </div>
             </div>
