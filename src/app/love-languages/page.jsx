@@ -6,7 +6,7 @@ import { ArrowLeft, ExternalLink, Edit, Trash2 } from 'lucide-react';
 import { useLoveLanguageProfile } from '../hooks/useLoveLanguageProfile';
 import { LOVE_LANGUAGES_DE} from '../components/enums';
 
-export default function LoveLanguagesPage({ currentPath = "/love-languages" }) {
+export default function LoveLanguagesPage() {
     const router = useRouter();
 
     const {

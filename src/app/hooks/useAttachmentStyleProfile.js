@@ -75,6 +75,7 @@ export function useAttachmentStyleProfile() {
         profile,
         loading,
         selectedStyle,
+        setSelectedStyle,
         save,
         remove,
         isEditingInitial
