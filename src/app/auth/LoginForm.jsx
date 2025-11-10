@@ -32,9 +32,9 @@ export default function LoginForm() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-100 to-pink-100 p-6">
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-100 to-blue-100 p-6">
             <div className="bg-white shadow-lg rounded-2xl p-8 w-full max-w-md">
-                <h2 className="text-3xl font-bold text-center mb-6 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                <h2 className="text-3xl font-bold text-center mb-6 bg-gradient-to-r from-blue-950 to-blue-100 bg-clip-text text-transparent">
                     Awarely
                 </h2>
 
@@ -95,7 +95,7 @@ export default function LoginForm() {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:shadow-md transition"
+                        className="w-full py-2 bg-gradient-to-r from-blue-950 to-blue-100 text-white rounded-lg hover:shadow-md transition"
                     >
                         {loading ? "Lädt..." : isRegister ? "Registrieren" : "Einloggen"}
                     </button>
@@ -105,7 +105,7 @@ export default function LoginForm() {
                     {isRegister ? "Bereits ein Konto?" : "Noch kein Konto?"}
                     <button
                         onClick={() => setIsRegister(!isRegister)}
-                        className="ml-1 text-purple-600 hover:underline"
+                        className="ml-1 text-blue-800 hover:underline"
                     >
                         {isRegister ? "Einloggen" : "Registrieren"}
                     </button>

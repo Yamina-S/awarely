@@ -1,3 +1,4 @@
+"use client";
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '../auth/AuthContext';
@@ -8,7 +9,7 @@ export function useProfiles() {
     const [sharedProfiles, setSharedProfiles] = useState([]);
     const [loadingProfiles, setLoadingProfiles] = useState(true);
 
-    useEffect(() => {
+    const loadAllData = async () => {
         if (!user) {
             setOwnProfile(null);
             setSharedProfiles([]);
@@ -16,65 +17,61 @@ export function useProfiles() {
             return;
         }
 
-        async function loadOwnProfile() {
-            const {data: profileData, error: profError} = await supabase
+        setLoadingProfiles(true);
+
+        try {
+            const { data: profileData, error: loadProfileError } = await supabase
                 .from('profiles')
                 .select('*')
                 .eq('id', user.id)
                 .single();
-            return {profileData, profError};
-        }
 
-        async function loadSharedProfiles() {
-            const {data: sharedData, error: sharedError} = await supabase
-                .from('shared_profiles')
-                .select(`
-          id,
-          nickname,
-          owner_id,
-          owner:owner_id (
-            id,
-            first_name,
-            attachment_style,
-            primary_love_language,
-            share_attachment_style,
-            share_love_language
-          )
-        `)
-                .eq('viewer_id', user.id);
-            return {sharedData, sharedError};
-        }
-
-        const load = async () => {
-            const {profileData, ownProfileLoadError} = await loadOwnProfile();
-
-            if (ownProfileLoadError) {
-                console.error("Error loading own profile:", ownProfileLoadError);
+            if (loadProfileError) {
+                console.error("Error loading user profile:", JSON.stringify(loadProfileError));
             } else {
                 setOwnProfile(profileData);
             }
-            if (!profileData) {
-                console.error("No profile data");
-            }
 
-            const {sharedData, sharedError} = await loadSharedProfiles();
+            const { data: sharedData, error: loadSharedError } = await supabase
+                .from('shared_profiles')
+                .select(`
+                  id,
+                  nickname,
+                  owner_id,
+                  can_view_attachment_style,
+                  can_view_love_language,
+                  owner:owner_id (
+                    id,
+                    first_name,
+                    last_name,
+                    attachment_style,
+                    primary_love_language
+                    )
+                    `)
+                    .eq('viewer_id', user.id);
 
-            if (sharedError) {
-                console.error("Error loading shared profiles:", sharedError);
+            if (loadSharedError) {
+                console.error("Error loading shared profiles:", JSON.stringify(loadSharedError));
             } else {
                 setSharedProfiles(sharedData || []);
             }
-
-            if(!sharedData) {
-                console.warn("No sharedProfile data");
-                return [];
-            }
-
+        } catch (error) {
+            console.error("Unexpected error loading profiles:", error);
+        } finally {
             setLoadingProfiles(false);
-        };
+        }
+    };
 
-        load();
+    useEffect(() => {
+        if (user) {
+            loadAllData();
+        }
     }, [user]);
 
-    return { ownProfile, sharedProfiles, loadingProfiles };
+    return {
+        ownProfile,
+        sharedProfiles,
+        loadingProfiles,
+        reload: loadAllData
+    };
 }
