@@ -1,6 +1,6 @@
 "use client";
 import { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabaseClient'
+import { supabase } from '@/lib/supabaseClient';
 import * as authService from '../../lib/authService';
 
 const AuthContext = createContext();
@@ -16,32 +16,48 @@ export function AuthProvider({ children }) {
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => { checkUser(); }, []);
+    useEffect(() => {
+        const initAuth = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user) {
+                setUser(session.user);
+                await loadProfile(session.user.id);
+            }
+            setLoading(false);
+        };
 
-    const checkUser = async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-            setUser(session.user);
-            await loadProfile(session.user.id);
-        }
-        setLoading(false);
-    };
+        initAuth();
+
+        const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+            if (session?.user) {
+                setUser(session.user);
+                await loadProfile(session.user.id);
+            } else {
+                setUser(null);
+                setProfile(null);
+            }
+        });
+
+        return () => listener.subscription.unsubscribe();
+    }, []);
 
     const loadProfile = async (userId) => {
-        const { data } = await supabase.from('profiles').select('*').eq('id', userId).single();
-        setProfile(data);
+        if (!userId) return;
+        const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
+        if (error) console.error("Error loading profile:", error);
+        else setProfile(data);
     };
 
     const signUp = async (email, password, anon) => {
         const { user } = await authService.signUp(email, password, anon);
         setUser(user);
-        await loadProfile(user.id);
+        await loadProfile(user?.id);
     };
 
     const signIn = async (identifier, password) => {
         const { user } = await authService.signIn(identifier, password);
         setUser(user);
-        await loadProfile(user.id);
+        await loadProfile(user?.id);
     };
 
     const signOut = async () => {
