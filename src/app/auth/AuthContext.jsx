@@ -16,7 +16,27 @@ export function AuthProvider({ children }) {
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => { checkUser(); }, []);
+    useEffect(() => {
+        checkUser();
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            console.log('Auth state changed:', event);
+
+            if (session?.user) {
+                setUser(session.user);
+                await loadProfile(session.user.id);
+            } else {
+                setUser(null);
+                setProfile(null);
+            }
+
+            setLoading(false);
+        });
+
+        return () => {
+            subscription.unsubscribe();
+        };
+    }, []);
 
     const checkUser = async () => {
         const { data: { session } } = await supabase.auth.getSession();
@@ -33,21 +53,17 @@ export function AuthProvider({ children }) {
     };
 
     const signUp = async (email, password, anon) => {
-        const { user } = await authService.signUp(email, password, anon);
-        setUser(user);
-        await loadProfile(user.id);
+        const data = await authService.signUp(email, password, anon);
+        return data;
     };
 
     const signIn = async (identifier, password) => {
-        const { user } = await authService.signIn(identifier, password);
-        setUser(user);
-        await loadProfile(user.id);
+        const data = await authService.signIn(identifier, password);
+        return data;
     };
 
     const signOut = async () => {
         await authService.signOut();
-        setUser(null);
-        setProfile(null);
     };
 
     return (
